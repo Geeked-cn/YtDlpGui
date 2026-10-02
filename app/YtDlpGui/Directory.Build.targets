@@ -1,0 +1,32 @@
+<Project>
+
+  <!--
+    纯 dotnet CLI 构建兼容层：MrtCore.PriGen.targets / Microsoft.Build.Msix.Packaging.targets
+    的打包输出组依赖 VS 的 AppxPackage MSBuild 任务（纯 dotnet SDK 环境不存在）。
+    本文件在 NuGet targets 之后导入，可以覆盖这些属性与 target。
+
+    - PrepareForRunDependsOn: 摘除打包输出组与 PRI 相关目标（打包外应用不需要，
+      resources.pri 由本项目的 GenerateResourcesPri target 用 makepri.exe 生成）
+    - CopyLocalFilesOutputGroup: 用 KeepDuplicates=false 等价去重；
+      跳过 .winmd 实现提取（纯托管项目不需要）
+  -->
+  <PropertyGroup>
+    <!-- MrtCore 向 PrepareForRunDependsOn 追加了 GetMrtPackagingOutputs 等 VS 依赖目标，
+         打包外应用不需要这些（resources.pri 由 GenerateResourcesPri target 生成），
+         这里恢复为标准值 -->
+    <PrepareForRunDependsOn>CopyFilesToOutputDirectory</PrepareForRunDependsOn>
+  </PropertyGroup>
+
+  <Target Name="CopyLocalFilesOutputGroup"
+          DependsOnTargets="$(CopyLocalFilesOutputGroupDependsOn)"
+          Returns="@(CopyLocalFilesOutputGroupOutput)">
+    <ItemGroup>
+      <_CopyLocalFilesOutputGroupOutputFromReferences Include="@(ReferenceCopyLocalPaths)"
+          Condition="'%(ReferenceCopyLocalPaths.Extension)' != '.xml' or '$(AppxCopyLocalFilesOutputGroupIncludeXmlFiles)' == 'true'">
+        <TargetPath>%(ReferenceCopyLocalPaths.DestinationSubDirectory)%(ReferenceCopyLocalPaths.Filename)%(ReferenceCopyLocalPaths.Extension)</TargetPath>
+      </_CopyLocalFilesOutputGroupOutputFromReferences>
+      <CopyLocalFilesOutputGroupOutput Include="@(_CopyLocalFilesOutputGroupOutputFromReferences)" KeepDuplicates="false" />
+    </ItemGroup>
+  </Target>
+
+</Project>

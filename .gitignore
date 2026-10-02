@@ -1,0 +1,12 @@
+bin/
+obj/
+native/*.dll
+native/*.exe
+native/*.obj
+native/*.lib
+native/*.exp
+native/*.pdb
+tools/
+.vs/
+*.user
+*.suo

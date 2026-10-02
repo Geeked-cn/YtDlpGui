@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 复用应用的 P/Invoke 封装，直接验证原生层行为 -->
+    <Compile Include="..\..\app\YtDlpGui\Services\NativeProcess.cs" Link="NativeProcess.cs" />
+    <Compile Include="..\..\app\YtDlpGui\Services\ToolLocator.cs" Link="ToolLocator.cs" />
+    <None Include="..\..\native\ytdlp_host.dll" Link="ytdlp_host.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

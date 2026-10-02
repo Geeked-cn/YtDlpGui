@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/app/">
+    <Project Path="app/YtDlpGui/YtDlpGui.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NativeSmoke/NativeSmoke.csproj" />
+  </Folder>
+</Solution>

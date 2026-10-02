@@ -1,0 +1,99 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <RootNamespace>YtDlpGui</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWinUI>true</UseWinUI>
+    <EnableMsixTooling>false</EnableMsixTooling>
+    <!-- 打包外自包含部署：无需安装 Windows App SDK 运行时，双击即用 -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <WindowsAppSdkUndockedRegFreeWinRTInitialize>true</WindowsAppSdkUndockedRegFreeWinRTInitialize>
+    <DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <DefaultLanguage>zh-CN</DefaultLanguage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.*" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.*" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- C 原生层：构建 native/ 目录后自动拷进输出目录 -->
+    <None Include="..\..\native\ytdlp_host.dll" Link="ytdlp_host.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
+    资源 PRI 生成：官方 PriGen 管线依赖 VS 的 AppxPackage MSBuild 任务（纯 dotnet CLI 环境没有）。
+    这里关闭托管 PriGen，改用 Windows SDK 自带的 makepri.exe 原生工具，
+    把 XAML 编译产物 (.xbf) 打包进输出目录的 resources.pri —— 行为与 VS 构建一致。
+  -->
+  <PropertyGroup>
+    <AppxGeneratePriEnabled>false</AppxGeneratePriEnabled>
+    <AppxGeneratePrisForPortableLibrariesEnabled>false</AppxGeneratePrisForPortableLibrariesEnabled>
+    <IncludeProjectPriFile>false</IncludeProjectPriFile>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- 依次探测本机可用的 makepri.exe -->
+    <MakePriExe Condition="'$(MakePriExe)' == '' and Exists('C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\makepri.exe')">C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\makepri.exe</MakePriExe>
+  </PropertyGroup>
+
+  <Target Name="LocateMakePri" Condition="'$(MakePriExe)' == ''">
+    <ItemGroup>
+      <_MakePriCandidates Include="C:\Program Files (x86)\Windows Kits\10\bin\*\x64\makepri.exe" />
+    </ItemGroup>
+    <PropertyGroup>
+      <MakePriExe>%(_MakePriCandidates.Identity)</MakePriExe>
+    </PropertyGroup>
+    <Error Condition="'$(MakePriExe)' == ''" Text="未找到 makepri.exe（Windows SDK）。请安装 Windows SDK 或用 -p:MakePriExe=路径 指定。" />
+  </Target>
+
+  <Target Name="GenerateResourcesPri" AfterTargets="Build" DependsOnTargets="LocateMakePri">
+    <PropertyGroup>
+      <!-- 注意：路径不能以反斜杠结尾，否则引号内的 \" 会被命令行解析器转义 -->
+      <PriStageDir>$(IntermediateOutputPath)pri_stage</PriStageDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <_XbfFiles Include="$(IntermediateOutputPath)**\*.xbf" />
+      <!-- 框架 PRI（Microsoft.UI.pri / Microsoft.UI.Xaml.Controls.pri 等）也纳入合并，
+           使打包外应用的单一 resources.pri 能解析 WinUI 主题资源 -->
+      <_FrameworkPriFiles Include="$(OutDir)*.pri" Exclude="$(OutDir)resources.pri" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_XbfFiles)"
+          DestinationFiles="@(_XbfFiles->'$(PriStageDir)\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_FrameworkPriFiles)" DestinationFolder="$(PriStageDir)"
+          SkipUnchangedFiles="true" />
+    <Exec Command="&quot;$(MakePriExe)&quot; new /pr &quot;$(PriStageDir)&quot; /cf &quot;$(MSBuildProjectDirectory)\pri\priconfig.xml&quot; /in YtDlpGui /of &quot;$(OutDir)resources.pri&quot; /o"
+          IgnoreExitCode="false" />
+  </Target>
+
+  <!--
+    纯 MSBuild 替代：原版 CopyLocalFilesOutputGroup 依赖 VS 的 RemovePayloadDuplicates 任务做去重。
+    这里用 KeepDuplicates=false 达到同样效果（仅多保留非规范化重复路径，无害），
+    并跳过 .winmd 实现提取（纯托管 WinUI 项目用不到）。
+  -->
+  <Target Name="CopyLocalFilesOutputGroup"
+          DependsOnTargets="$(CopyLocalFilesOutputGroupDependsOn)"
+          Returns="@(CopyLocalFilesOutputGroupOutput)">
+    <ItemGroup>
+      <_CopyLocalFilesOutputGroupOutputFromReferences Include="@(ReferenceCopyLocalPaths)"
+          Condition="'%(ReferenceCopyLocalPaths.Extension)' != '.xml' or '$(AppxCopyLocalFilesOutputGroupIncludeXmlFiles)' == 'true'">
+        <TargetPath>%(ReferenceCopyLocalPaths.DestinationSubDirectory)%(ReferenceCopyLocalPaths.Filename)%(ReferenceCopyLocalPaths.Extension)</TargetPath>
+      </_CopyLocalFilesOutputGroupOutputFromReferences>
+      <CopyLocalFilesOutputGroupOutput Include="@(_CopyLocalFilesOutputGroupOutputFromReferences)" KeepDuplicates="false" />
+    </ItemGroup>
+  </Target>
+
+</Project>
