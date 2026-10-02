@@ -31,6 +31,8 @@
   <ItemGroup>
     <!-- C 原生层：构建 native/ 目录后自动拷进输出目录 -->
     <None Include="..\..\native\ytdlp_host.dll" Link="ytdlp_host.dll" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 随软件捆绑的 yt-dlp / ffmpeg（redist\*.exe，体积原因不进 git，见 redist\README.txt） -->
+    <None Include="..\..\redist\*.exe" Link="tools\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--

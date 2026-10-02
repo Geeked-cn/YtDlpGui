@@ -46,6 +46,24 @@ dotnet build app\YtDlpGui\YtDlpGui.csproj -c Release
 输出：`app\YtDlpGui\bin\Release\net8.0-windows10.0.19041.0\win-x64\YtDlpGui.exe`
 （打包外自包含部署：无需安装 Windows App SDK 运行时，双击即用）。
 
+### 捆绑 yt-dlp / ffmpeg（可选）
+
+把 `yt-dlp.exe`、`ffmpeg.exe`、`ffprobe.exe` 放进 `redist\` 目录（见 `redist\README.txt`），
+构建时会自动拷贝到应用 `tools\` 下随软件分发，用户无需再下载。
+缺失时应用启动会引导用户自动下载（支持 ghproxy 镜像）。
+
+### 打包安装程序
+
+需要 [Inno Setup 7](https://jrsoftware.org/isinfo.php)（含简体中文语言包）：
+
+```bat
+dotnet build app\YtDlpGui\YtDlpGui.csproj -c Release
+"C:\Program Files\Inno Setup 7\ISCC.exe" installer\setup.iss
+```
+
+产物：`installer\Output\YtDlpGui-1.0.0-setup.exe`（按用户安装到
+`%LOCALAPPDATA%\Programs\YtDlpGui`，免管理员，含开始菜单快捷方式与卸载器）。
+
 ## 目录结构
 
 ```
@@ -54,6 +72,8 @@ YtDlpGui/
 │   ├── ytdlp_host.h/.c        进程宿主：spawn/管道/Job/引用计数
 │   ├── test_host.c            纯 C 冒烟测试
 │   └── build.bat              gcc / MSVC 双后端构建脚本
+├── redist/                    捆绑的 yt-dlp/ffmpeg（*.exe 不进 git，见内 README）
+├── installer/                 Inno Setup 安装程序脚本 + 图标
 ├── app/YtDlpGui/              WinUI 3 应用
 │   ├── MainWindow.xaml(.cs)   界面
 │   ├── ViewModels/            MainViewModel（任务调度/并发闸门）
