@@ -27,6 +27,7 @@ public sealed partial class MainWindow : Window
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
         SystemBackdrop = new MicaBackdrop();
+        AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "app.ico")); // 任务栏 / Alt-Tab 图标
 
         WireUi();
 

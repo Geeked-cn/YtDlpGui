@@ -7,6 +7,7 @@
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <RootNamespace>YtDlpGui</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <UseWinUI>true</UseWinUI>
@@ -33,6 +34,8 @@
     <None Include="..\..\native\ytdlp_host.dll" Link="ytdlp_host.dll" CopyToOutputDirectory="PreserveNewest" />
     <!-- 随软件捆绑的 yt-dlp / ffmpeg（redist\*.exe，体积原因不进 git，见 redist\README.txt） -->
     <None Include="..\..\redist\*.exe" Link="tools\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <!-- 应用图标：exe 资源 + 运行期窗口/任务栏图标 -->
+    <None Include="app.ico" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <!--
